@@ -105,11 +105,12 @@ class Preprocessing extends Transformer {
         "SecurityDelay",
         "LateAircraftDelay",
         // selected
-        "CancellationCode"
+        "Year",
+        "CancellationCode",
+        "Cancelled",
     ) ++ categoricalColumns ++ indexCategoricalColumns
 
     val featuresColumns = Array(
-        "Year",
         "Month",
         "DayofMonth",
         "DayOfWeek",
@@ -121,7 +122,6 @@ class Preprocessing extends Transformer {
         "DepDelay",
         "Distance",
         "TaxiOut",
-        "Cancelled",
     ) ++ vectorCategoricalColumns
 
     override def transform(dataset: Dataset[_]): DataFrame = {

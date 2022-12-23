@@ -1,5 +1,7 @@
 package upm.bd
 
+import java.io.{FileWriter, File}
+
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
@@ -9,6 +11,9 @@ import org.apache.spark.sql.{Dataset, DataFrame, Column}
 import org.apache.spark.sql.functions._
 
 import org.apache.spark.ml.regression.LinearRegression
+import org.apache.spark.ml.regression.{GBTRegressionModel, GBTRegressor, FMRegressor}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.evaluation.RegressionEvaluator
 
 import org.apache.log4j.{Level, Logger}
 
@@ -63,23 +68,69 @@ object App {
 
     // println(s"Average metric: ${model.model.avgMetrics}")
 
-    val lr = new LinearRegression()
-      .setMaxIter(10)
-      .setRegParam(0.3)
-      .setElasticNetParam(0.8)
-      .setFeaturesCol("features")
-      .setLabelCol("ArrDelay")
+    // Split the data into training and test sets (30% held out for testing).
+    val Array(trainingData, testData) = preprocess_df.randomSplit(Array(0.7, 0.3))
+
+    // val lr = new LinearRegression()
+    //   .setMaxIter(10)
+    //   .setRegParam(0.3)
+    //   .setElasticNetParam(0.8)
+    //   .setFeaturesCol("features")
+    //   .setLabelCol("ArrDelay")
     
-    val model = lr.fit(preprocess_df)
+    // val lrModel = lr.fit(preprocess_df)
+    // val trainingSummary = lrModel.summary
 
-    println(s"Coefficients: ${model.coefficients}")
-    println(s"Intercept: ${model.intercept}")
+    // val pw = new FileWriter(new File("data/lrResults.txt" ))
+    // pw.write(s"Coefficients: ${lrModel.coefficients}")
+    // pw.write(s"Coefficients: ${lrModel.coefficients}")
+    // pw.write(s"Intercept: ${lrModel.intercept}")
+    // pw.write(s"numIterations: ${trainingSummary.totalIterations}")
+    // pw.write(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
+    // trainingSummary.residuals.show()
+    // pw.write(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
+    // pw.write(s"r2: ${trainingSummary.r2}")
+    // pw.close()
 
-    val trainingSummary = model.summary
-    println(s"numIterations: ${trainingSummary.totalIterations}")
-    println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
-    trainingSummary.residuals.show()
-    println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
-    println(s"r2: ${trainingSummary.r2}")
+    // // Train a GBT model.
+    // val gbt = new GBTRegressor()
+    //   .setLabelCol("ArrDelay")
+    //   .setFeaturesCol("features")
+    //   .setMaxIter(5)
+    // // Train model. This also runs the indexer.
+    // val gbtModel = gbt.fit(trainingData)
+    // // Make predictions.
+    // val gbtPredictions = gbtModel.transform(testData)
+    // // Select example rows to display.
+    // gbtPredictions.select("prediction", "ArrDelay", "features").show(5)
+    // // Select (prediction, true label) and compute test error.
+    // val gbtEvaluator = new RegressionEvaluator()
+    //   .setLabelCol("ArrDelay")
+    //   .setPredictionCol("prediction")
+    //   .setMetricName("rmse")
+    // val rmse = gbtEvaluator.evaluate(gbtPredictions)
+    // println(s"Root Mean Squared Error (RMSE) on test data = $rmse")
+    // println(s"Learned regression GBT model:\n ${model.toDebugString}")
+
+    // Train a FM model.
+    val fm = new FMRegressor()
+      .setLabelCol("ArrDelay")
+      .setFeaturesCol("features")
+      .setStepSize(0.001)
+    // Train model.
+    val fmModel = fm.fit(trainingData)
+    // Make predictions.
+    val fmPredictions = fmModel.transform(testData)
+    // Select example rows to display.
+    fmPredictions.select("prediction", "ArrDelay", "features").show(5)
+    // Select (prediction, true label) and compute test error.
+    val fmEvaluator = new RegressionEvaluator()
+      .setLabelCol("ArrDelay")
+      .setPredictionCol("prediction")
+      .setMetricName("rmse")
+    val rmse = fmEvaluator.evaluate(fmPredictions)
+    println(s"Root Mean Squared Error (RMSE) on test data = $rmse")
+    println(s"Factors: ${fmModel.factors} Linear: ${fmModel.linear} " +
+      s"Intercept: ${fmModel.intercept}")
   }
 }
