@@ -41,17 +41,33 @@ class AssignTransformer(assignMap: Map[String, Function[DataFrame, Column]]) ext
     }
 }
 
+class FilterTransformer(filterFunction: Function[DataFrame, Column]) extends Transformer {
+    val uid = Identifiable.randomUID("filter_transformer")
+
+    override def transform(dataset: Dataset[_]): DataFrame = {
+        val df = dataset.toDF()
+        df.filter(this.filterFunction(df))
+    }
+
+    override def copy(extra: ParamMap): Transformer =
+        copyValues(new FilterTransformer(this.filterFunction), extra)
+
+    override def transformSchema(schema: StructType): StructType = {
+        StructType(schema.fields)
+    }
+}
+
 class Preprocessing extends Transformer {
     val uid = Identifiable.randomUID("preprocessing")
 
     val assignMap = Map(
         "CRSElapsedTime" -> ((df: DataFrame) => 
             df("CRSElapsedTime").cast("integer")),
-        "ArrDelay" -> ((df: DataFrame) => df("ArrDelay").cast("integer")),
+        "ArrDelay" -> ((df: DataFrame) => df("ArrDelay").cast("integer").asInstanceOf[Column]),
         "DepDelay" -> ((df: DataFrame) => df("DepDelay").cast("integer")),
         "Distance" -> ((df: DataFrame) => df("Distance").cast("float")),
         "TaxiOut" -> ((df: DataFrame) => df("TaxiOut").cast("integer")),
-        "Year" -> ((df: DataFrame) => col("Year").cast("integer")),
+        "Year" -> ((df: DataFrame) => df("Year").cast("integer")),
         "Month" -> ((df: DataFrame) => df("Month").cast("integer")),
         "DayofMonth" -> ((df: DataFrame) => df("DayofMonth").cast("integer")),
         "DayOfWeek" -> ((df: DataFrame) => df("DayOfWeek").cast("integer")),
@@ -60,9 +76,11 @@ class Preprocessing extends Transformer {
         "CRSArrTime" -> ((df: DataFrame) => df("CRSArrTime").cast("integer")),
         "CRSElapsedTime" -> ((df: DataFrame) => df("CRSElapsedTime").cast("integer")),
         "Cancelled" -> ((df: DataFrame) => df("Cancelled").cast("integer")),
-        "FlightNum" -> ((df: DataFrame) => df("FlightNum").cast("integer"))
+        "FlightNum" -> ((df: DataFrame) => df("FlightNum").cast("integer")),
     )
-    
+
+    val filterFunction = (df: DataFrame) => df("Cancelled") === "0"
+
     val categoricalColumns = Array(
         "Origin",
         "Dest",
@@ -107,8 +125,10 @@ class Preprocessing extends Transformer {
     ) ++ vectorCategoricalColumns
 
     override def transform(dataset: Dataset[_]): DataFrame = {
+        val filterTransformer = new FilterTransformer(this.filterFunction)
         val assignTransformer = new AssignTransformer(this.assignMap)
         val stringIndexer = new StringIndexer()
+            .setHandleInvalid("keep")
             .setInputCols(this.categoricalColumns)
             .setOutputCols(this.indexCategoricalColumns)
         val oneHotEncoder = new OneHotEncoder()
@@ -119,16 +139,14 @@ class Preprocessing extends Transformer {
             .setInputCols(this.featuresColumns)
             .setOutputCol("features")
 
-        val pipeline = new Pipeline().setStages(Array(
-            assignTransformer,
-            stringIndexer,
-            oneHotEncoder,
-            dropTransformer,
-            // NOTE The VectorAssembler doesn't work inside the pipeline
-            // featureAssembler
-        ))
-
-        val _dataset = pipeline.fit(dataset).transform(dataset)
+        var _dataset = filterTransformer.transform(dataset)
+        _dataset = assignTransformer.transform(_dataset)
+        _dataset = stringIndexer.fit(_dataset).transform(_dataset)
+        _dataset = _dataset.na.fill("Unknown", Array("TailNum"))
+                           .na.fill(0, Array("ArrDelay"))
+                           .na.fill(0, Array("CRSElapsedTime"))
+         _dataset = oneHotEncoder.fit(_dataset).transform(_dataset)
+         _dataset = dropTransformer.transform(_dataset)
         featureAssembler.transform(_dataset)
     }
 

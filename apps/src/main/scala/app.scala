@@ -3,11 +3,17 @@ package upm.bd
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
+
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, DataFrame, Column}
 import org.apache.spark.sql.functions._
+
+import org.apache.spark.ml.regression.LinearRegressionModel
+
 import org.apache.log4j.{Level, Logger}
 
 import upm.bd.Preprocessing
+import upm.bd.LinearRegressionHyperTuningModel
 
 object App {
   def main(args: Array[String]) {
@@ -32,23 +38,35 @@ object App {
     raw_df.show(6)
     raw_df.printSchema()
 
-    val preprocess_df = new Preprocessing().transform(raw_df)
-
-    preprocess_df.show(6)
-    preprocess_df.printSchema()
-    // preprocess_df.write.format("csv").save("data/stage/preprocess-dataset.csv")
-
-    // preprocess_df.select(
-    //   preprocess_df.columns.map(
+    // raw_df.select(
+    //   raw_df.columns.map(
     //       c => count(when(col(c).isNull || col(c) === "" || col(c).isNaN, c)
     //         ).alias(c)
     //     ): _*
     //   ).show()
 
-    // val lrModel = lr.fit(output)
-    // println(s"Coefficients: ${lrModel.coefficients}")
-    // println(s"Intercept: ${lrModel.intercept}")
-    // val trainingSummary = lrModel.summary
+    val preprocess_df = new Preprocessing().transform(raw_df)
+
+    def countCols(columns:Array[String]):Array[Column]={
+      columns.map(c=>{
+        count(when(col(c).isNull,c)).alias(c)
+      })
+    }
+    preprocess_df.select(countCols(preprocess_df.columns):_*).show()
+
+    preprocess_df.show(6)
+    preprocess_df.printSchema()
+    // preprocess_df.write.format("csv").save("data/stage/preprocess-dataset.csv")
+
+    val model = new LinearRegressionHyperTuningModel().fit(preprocess_df)
+    // val bestModel = model.model.bestModel.asInstanceOf[LinearRegressionModel]
+
+    // println(s"Average metric: ${model.model.avgMetrics}")
+
+    // println(s"Coefficients: ${bestModel.coefficients}")
+    // println(s"Intercept: ${bestModel.intercept}")
+
+    // val trainingSummary = bestModel.summary
     // println(s"numIterations: ${trainingSummary.totalIterations}")
     // println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
     // trainingSummary.residuals.show()
