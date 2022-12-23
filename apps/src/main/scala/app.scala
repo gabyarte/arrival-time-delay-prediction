@@ -8,7 +8,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.{Dataset, DataFrame, Column}
 import org.apache.spark.sql.functions._
 
-import org.apache.spark.ml.regression.LinearRegressionModel
+import org.apache.spark.ml.regression.LinearRegression
 
 import org.apache.log4j.{Level, Logger}
 
@@ -58,19 +58,28 @@ object App {
     preprocess_df.printSchema()
     // preprocess_df.write.format("csv").save("data/stage/preprocess-dataset.csv")
 
-    val model = new LinearRegressionHyperTuningModel().fit(preprocess_df)
+    // val model = new LinearRegressionHyperTuningModel().fit(preprocess_df)
     // val bestModel = model.model.bestModel.asInstanceOf[LinearRegressionModel]
 
     // println(s"Average metric: ${model.model.avgMetrics}")
 
-    // println(s"Coefficients: ${bestModel.coefficients}")
-    // println(s"Intercept: ${bestModel.intercept}")
+    val lr = new LinearRegression()
+      .setMaxIter(10)
+      .setRegParam(0.3)
+      .setElasticNetParam(0.8)
+      .setFeaturesCol("features")
+      .setLabelCol("ArrDelay")
+    
+    val model = lr.fit(preprocess_df)
 
-    // val trainingSummary = bestModel.summary
-    // println(s"numIterations: ${trainingSummary.totalIterations}")
-    // println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
-    // trainingSummary.residuals.show()
-    // println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
-    // println(s"r2: ${trainingSummary.r2}")
+    println(s"Coefficients: ${model.coefficients}")
+    println(s"Intercept: ${model.intercept}")
+
+    val trainingSummary = model.summary
+    println(s"numIterations: ${trainingSummary.totalIterations}")
+    println(s"objectiveHistory: ${trainingSummary.objectiveHistory.toList}")
+    trainingSummary.residuals.show()
+    println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
+    println(s"r2: ${trainingSummary.r2}")
   }
 }
