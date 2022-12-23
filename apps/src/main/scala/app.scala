@@ -4,9 +4,10 @@ import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions._
 import org.apache.log4j.{Level, Logger}
 
-import upm.bd.XPreprocessing
+import upm.bd.Preprocessing
 
 object App {
   def main(args: Array[String]) {
@@ -29,44 +30,20 @@ object App {
       .load("data/raw/2008.csv")
 
     raw_df.show(6)
+    raw_df.printSchema()
 
-    val X = new XPreprocessing().transform(raw_df)
+    val preprocess_df = new Preprocessing().transform(raw_df)
 
-    X.show(6)
-    X.printSchema()
+    preprocess_df.show(6)
+    preprocess_df.printSchema()
+    // preprocess_df.write.format("csv").save("data/stage/preprocess-dataset.csv")
 
-    // X.select(X.columns.map(c => count(when(col(c).isNull || col(c) === "" || col(c).isNaN, c)).alias(c)): _*).show()
-
-    // val assembler = new VectorAssembler()
-    //   .setInputCols(
-    //     Array(
-    //       "DayOfWeek",
-    //       "DepTime",
-    //       "CRSDepTime",
-    //       "CRSArrTime",
-    //       "UniqueCarrier",
-    //       "FlightNum",
-    //       "TailNum",
-    //       "CRSElapsedTime",
-    //       "ArrDelay",
-    //       "DepDelay",
-    //       "Origin",
-    //       "Dest",
-    //       "Distance",
-    //       "TaxiOut"
-    //     )
-    //   )
-    //   .setOutputCol("features")
-    // val output = assembler.transform(df3)
-    // output.show(truncate = false)
-
-    // all feature must be numeric
-    // val lr = new LinearRegression()
-    //   .setFeaturesCol("features")
-    //   .setLabelCol("ArrDelay")
-    //   .setMaxIter(10)
-    //   .setRegParam(0.3)
-    //   .setElasticNetParam(0.8)
+    // preprocess_df.select(
+    //   preprocess_df.columns.map(
+    //       c => count(when(col(c).isNull || col(c) === "" || col(c).isNaN, c)
+    //         ).alias(c)
+    //     ): _*
+    //   ).show()
 
     // val lrModel = lr.fit(output)
     // println(s"Coefficients: ${lrModel.coefficients}")
@@ -77,6 +54,5 @@ object App {
     // trainingSummary.residuals.show()
     // println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
     // println(s"r2: ${trainingSummary.r2}")
-
   }
 }
