@@ -1,14 +1,15 @@
 package upm.bd
+
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.regression.LinearRegression
-import org.apache.spark.ml.feature.VectorAssembler
 
-object MyApp {
+import upm.bd.XPreprocessing
+
+object App {
   def main(args: Array[String]) {
     Logger.getLogger("org").setLevel(Level.WARN)
     val conf = new SparkConf()
@@ -29,19 +30,10 @@ object MyApp {
       .load("data/raw/2008.csv")
 
     raw_df.show(6)
-    
-    // val df = raw_df.drop(
-    //   "ArrTime",
-    //   "ActualElapsedTime",
-    //   "AirTime",
-    //   "TaxiIn",
-    //   "Diverted",
-    //   "CarrierDelay",
-    //   "WeatherDelay",
-    //   "NASDelay",
-    //   "SecurityDelay",
-    //   "LateAircraftDelay"
-    // )
+
+    val X = new XPreprocessing().transform(raw_df)
+
+    X.show(6)
 
     // df.select(
     //   df.columns.map(c =>
