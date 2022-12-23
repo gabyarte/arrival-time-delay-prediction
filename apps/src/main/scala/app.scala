@@ -4,7 +4,6 @@ import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions._
 import org.apache.log4j.{Level, Logger}
 
 import upm.bd.XPreprocessing
@@ -34,69 +33,9 @@ object App {
     val X = new XPreprocessing().transform(raw_df)
 
     X.show(6)
+    X.printSchema()
 
-    // df.select(
-    //   df.columns.map(c =>
-    //     count(when(col(c).isNull || col(c) === "" || col(c).isNaN, c)).alias(c)
-    //   ): _*
-    // ).show()
-
-    // val df0 =
-    //   df.filter(df("Cancelled") === "0").drop("Cancelled", "CancellationCode")
-    // val df1 = df0
-    //   .withColumn("CRSElapsedTime", df0("CRSElapsedTime").cast("integer"))
-    //   .withColumn("ArrDelay", df0("ArrDelay").cast("integer"))
-    //   .withColumn("DepDelay", df0("DepDelay").cast("integer"))
-    //   .withColumn("Distance", df0("Distance").cast("integer"))
-    //   .withColumn("TaxiOut", df0("TaxiOut").cast("integer"))
-    //   .withColumn("DepTime", regexp_replace(df0("DepTime"), "..$", ":$0"))
-    //   .withColumn("CRSDepTime", regexp_replace(df0("CRSDepTime"), "..$", ":$0"))
-    //   .withColumn("CRSArrTime", regexp_replace(df0("CRSArrTime"), "..$", ":$0"))
-
-    // val df2 = df1
-    //   .withColumn(
-    //     "CRSDepTime",
-    //     to_timestamp(
-    //       concat(
-    //         df1("Year"),
-    //         lit('-'),
-    //         df1("Month"),
-    //         lit('-'),
-    //         df1("DayofMonth"),
-    //         lit(' '),
-    //         df1("CRSDepTime")
-    //       )
-    //     )
-    //   )
-    //   .withColumn(
-    //     "CRSArrTime",
-    //     to_timestamp(
-    //       concat(
-    //         df1("Year"),
-    //         lit('-'),
-    //         df1("Month"),
-    //         lit('-'),
-    //         df1("DayofMonth"),
-    //         lit(' '),
-    //         df1("CRSArrTime")
-    //       )
-    //     )
-    //   )
-
-    // val df3 = df2
-    //   .drop("Year", "Month", "DayofMonth")
-    //   .withColumn(
-    //     "DepTime",
-    //     to_timestamp(
-    //       from_unixtime(
-    //         unix_timestamp(df2("CRSDepTime")) + (df2("DepDelay") * 60),
-    //         "yyyy-MM-dd HH:mm:ss"
-    //       )
-    //     )
-    //   )
-
-    // df3.show(6)
-    // df3.printSchema()
+    // X.select(X.columns.map(c => count(when(col(c).isNull || col(c) === "" || col(c).isNaN, c)).alias(c)): _*).show()
 
     // val assembler = new VectorAssembler()
     //   .setInputCols(
