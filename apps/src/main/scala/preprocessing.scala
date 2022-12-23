@@ -51,7 +51,7 @@ class Preprocessing extends Transformer {
         "DepDelay" -> ((df: DataFrame) => df("DepDelay").cast("integer")),
         "Distance" -> ((df: DataFrame) => df("Distance").cast("float")),
         "TaxiOut" -> ((df: DataFrame) => df("TaxiOut").cast("integer")),
-        "Year" -> ((df: DataFrame) => df("Year").cast("integer")),
+        "Year" -> ((df: DataFrame) => col("Year").cast("integer")),
         "Month" -> ((df: DataFrame) => df("Month").cast("integer")),
         "DayofMonth" -> ((df: DataFrame) => df("DayofMonth").cast("integer")),
         "DayOfWeek" -> ((df: DataFrame) => df("DayOfWeek").cast("integer")),
@@ -124,9 +124,12 @@ class Preprocessing extends Transformer {
             stringIndexer,
             oneHotEncoder,
             dropTransformer,
-            featureAssembler
+            // NOTE The VectorAssembler doesn't work inside the pipeline
+            // featureAssembler
         ))
-        pipeline.fit(dataset).transform(dataset)
+
+        val _dataset = pipeline.fit(dataset).transform(dataset)
+        featureAssembler.transform(_dataset)
     }
 
     override def copy(extra: ParamMap): Transformer =
