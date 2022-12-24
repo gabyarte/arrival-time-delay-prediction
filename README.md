@@ -21,7 +21,7 @@ docker exec -it <container_id> sh
 In the shell that will be open, type the following command and with that, the created application will run:
 
 ```bash
-spark-submit --master spark://spark-master:7077 --class upm.bd.MyApp app/target/scala-2.12/sparkapp_2.12-1.0.0.jar
+spark-submit --master spark://spark-master:7077 --class upm.bd.App app/target/scala-2.12/sparkapp_2.12-1.0.0.jar
 ```
 
 If you want to see the states of the spark application, just go to a browser and enter to the link `localhost:8080`.
